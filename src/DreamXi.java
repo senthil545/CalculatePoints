@@ -1,8 +1,10 @@
 import static com.constants.AllConstants.BATSMAN_STATS;
 import static com.constants.AllConstants.BOWLER_STATS;
+import static com.constants.AllConstants.FIELDING_STATS;
 import static com.constants.AllConstants.HTML_PATH;
 import static com.constants.AllConstants.NON_TOPPERS_PER_ROW;
 import static com.constants.AllConstants.TOTAL_PLAYERS;
+import static com.constants.AllConstants.PLAYERS_COUNT;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -15,19 +17,25 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
 import javax.lang.model.type.NullType;
+
+import com.constants.AllConstants;
 
 public class DreamXi {
 	static Map<String, Integer> playerPoints;
 	static Map<String, NullType> isPlaying = new HashMap<>();
 	static double topperPoints;
 	static String topper, runnerUp;
+	//static String top20PlayerPoints = "";
+	static Map<String,List<String>> pickedBy = new HashMap<>();
 
 	static StringBuilder result;
 
@@ -36,10 +44,13 @@ public class DreamXi {
 		DateFormat formatter = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
 		formatter.setTimeZone(TimeZone.getTimeZone("Asia/Kolkata"));
 
-		String html = "<html><head><meta http-equiv=\"refresh\" content=\"30\"><title>Dream11 : " + topper + ","
+		String html = "<html><head><meta http-equiv=\"refresh\" content=\"120\"><title>Dream11 : " + topper + ","
 				+ runnerUp + " Leading </title></head><body><b><pre>" + result + "</pre></b>"
 				+ "<br><br><br><font color= red><b>Last Updated at " + formatter.format(new Date())
-				+ "</b></font></body></html>";
+				+ "</b></font><br><br><br><br>"
+				//+ "<font size=10>TOP 20 PLAYERS</font>"+
+				//top20PlayerPoints+
+				+"</body></html>";
 		try {
 			FileWriter file = new FileWriter(path);
 			file.write(html);
@@ -58,6 +69,7 @@ public class DreamXi {
 		result = new StringBuilder();
 
 		playerPoints = calculatePlayerPointsFromWeb();
+		//top20PlayerPoints="";
 
 		Map<String, DreamTeam> dreamTeams = fetchDreamXiTeams();
 		Map<String, Double> finalPoints = new HashMap<String, Double>();
@@ -77,13 +89,13 @@ public class DreamXi {
 		boolean isTopper = true;
 		result.append("<h3>");
 		displayOnPage("", "", 60, "", false);
-		displayOnPage("--------------------", "", 20, "-", false);
+		displayOnPage("--------------------", "", 21, "-", false);
 		result.append("<br>");
 		displayOnPage("", "", 60, "", false);
-		displayOnPage("Dream11 Rankings", "", 20, "", false);
+		displayOnPage("Dream11 Rankings", "", 21, "", false);
 		result.append("<br>");
 		displayOnPage("", "", 60, "", false);
-		displayOnPage("--------------------", "", 20, "-", false);
+		displayOnPage("--------------------", "", 21, "-", false);
 		result.append("<br>");
 		int i = 1;
 		result = result.append("<font color=\"DodgerBlue\">");
@@ -91,8 +103,8 @@ public class DreamXi {
 		for (String key : finalPoints.keySet()) {
 
 			displayOnPage("", "", 60, "", false);
-			result.append(i++);
-			displayOnPage(key, finalPoints.get(key).toString(), 19, "|", false);
+			result.append(String.format("%02d", i++));
+			displayOnPage(key, String.format("%.2f", finalPoints.get(key)).toString(), 19, "|", false);
 			if (i == 2) {
 				topperTempPoint = finalPoints.get(key);
 				result = result.append("</font>");
@@ -105,7 +117,7 @@ public class DreamXi {
 
 		}
 		displayOnPage("", "", 60, "", false);
-		displayOnPage("--------------------", "", 20, "-", false);
+		displayOnPage("--------------------", "", 21, "-", false);
 		result.append("<br>");
 		result.append("</h3>");
 		result.append("<br>");
@@ -176,20 +188,19 @@ public class DreamXi {
 
 				String player = teamsDomain.allPlayers.get(i);
 				Double playerPoint = teamsDomain.allPlayersPoints.get(i);
-				if (i == 11) {
+				if (i >= 11) {
 					result.append("<s><font color=red>");
 				}
 				displayOnPage(player, playerPoint.toString(), 20, "-", false);
-				if (i == 11) {
+				if (i >= 11) {
 					result.append("</font></s>");
 				}
 			}
 			result.append("<br>");
 
-			if (i == 11) {
+			if (i == 13) {
 
 				displayOnPage("", "", 42, "", false);
-				result.append("<br>");
 				result.append("<br>");
 			}
 
@@ -250,7 +261,7 @@ public class DreamXi {
 	private static Map<String, DreamTeam> fetchDreamXiTeams() throws FileNotFoundException, IOException {
 		Map<String, DreamTeam> dreamTeamsMap = new LinkedHashMap<String, DreamTeam>();
 
-		String dreamTeams = "Dream11T23";
+		String dreamTeams = "IPLDream11";
 
 		BufferedReader br = new BufferedReader(new FileReader(dreamTeams));
 
@@ -265,7 +276,7 @@ public class DreamXi {
 			if (st.contains("Team")) {
 				team = new DreamTeam();
 				dreamTeamsMap.put(st.replace(" Team", ""), team);
-				players12 = new HashMap<String, Double>(12);
+				players12 = new HashMap<String, Double>(PLAYERS_COUNT);
 				team.teamOwner = st.replace(" Team", "");
 				team.players12 = (HashMap<String, Double>) players12;
 				count = 0;
@@ -287,9 +298,9 @@ public class DreamXi {
 						}
 					}
 
-					players12.put(playerKey, x2x * getOrDefault(playerPoints, player[0]));
+					players12.put(playerKey, x2x * getOrDefault(playerPoints, player[0], team.teamOwner));
 					count++;
-					if (count > 11) {
+					if (count > 13) {
 						type = -1;
 						team.calculateTotalPoints();
 					}
@@ -299,32 +310,52 @@ public class DreamXi {
 			}
 
 		}
+		
+		int counter=20;
+		for(String player: playerPoints.keySet()) {
+			if(counter==0)
+				break;
+			List<String> temp = pickedBy.get(player);
+			//top20PlayerPoints = top20PlayerPoints+"<br>"+player+ " : "+playerPoints.get(player)+"points , Picked by : "+temp;
+			counter--;
+			
+		}
+		
+		
 		return dreamTeamsMap;
 	}
 
-	static int getOrDefault(Map<String, Integer> playerPoints, String i) {
+	static int getOrDefault(Map<String, Integer> playerPoints, String i , String teamOwner) {
 		if (playerPoints.get(i) == null)
 			return 0;
+		List<String> pickedByOwners = pickedBy.get(i)==null?new ArrayList<String>():pickedBy.get(i);
+		pickedByOwners.add(teamOwner);
+		
+			pickedBy.put(i , pickedByOwners);
+			
 		return playerPoints.get(i);
 	}
 
 	private static Map<String, Integer> calculatePlayerPointsFromWeb() throws IOException, InterruptedException {
 		String batsmanFile = BATSMAN_STATS;
 		String bowlerFile = BOWLER_STATS;
+		String fieldingFile = FIELDING_STATS;
 		// String runOutFile = "RunOuts";
 
-		Map<String, Integer> playerStats = new LinkedHashMap<>();
+		HashMap<String, Integer> playerStats = new HashMap<>();
 
-		getStatsFromWeb(batsmanFile, playerStats, 5, 1);// runs
-		getStatsFromWeb(batsmanFile, playerStats, 10, 16);// 100s
-		getStatsFromWeb(batsmanFile, playerStats, 11, 8);// 50s
-		getStatsFromWeb(bowlerFile, playerStats, 7, 25);// wickets
-		getStatsFromWeb(bowlerFile, playerStats, 12, 8);// 4wcks
-		getStatsFromWeb(bowlerFile, playerStats, 13, 16);// 5wcks
-		getStatsFromWeb(bowlerFile, playerStats, 5, 8);// maidens
-		getStatsFromWeb(bowlerFile, playerStats, 14, 8);// catches
-		getStatsFromWeb(bowlerFile, playerStats, 15, 12);// stumpings
+		getStatsFromWeb(batsmanFile, playerStats, 6, 1);// runs
+		getStatsFromWeb(batsmanFile, playerStats, 11, 16);// 100s
+		getStatsFromWeb(batsmanFile, playerStats, 12, 8);// 50s
+		getStatsFromWeb(bowlerFile, playerStats, 9, 25);// wickets
+		getStatsFromWeb(bowlerFile, playerStats, 14, 8);// 4wcks
+		getStatsFromWeb(bowlerFile, playerStats, 15, 16);// 5wcks
+		getStatsFromWeb(bowlerFile, playerStats, 7, 8);// maidens
+		getStatsFromWeb(fieldingFile, playerStats, 5, 8);// catches
+		//getStatsFromWeb(fieldingFile, playerStats, 16, 12);// stumpings
 		// getStats(runOutFile, playerStats, 1, 2, 6);// runouts
+		
+		playerStats = DreamTeam.sortByValue(playerStats);
 
 		return playerStats;
 	}
@@ -335,35 +366,38 @@ public class DreamXi {
 		URL url = new URL(urlLink);
 
 		URLConnection con = url.openConnection();
+		con.addRequestProperty("User-Agent", 
+				"Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.0)");
+
 		InputStream is = con.getInputStream();
 
 		BufferedReader br = new BufferedReader(new InputStreamReader(is));
 
 		String line = null;
-		int count = 0;
 		String player = null;
 		while ((line = br.readLine()) != null) {
 			line = line.trim();
-			if (line.contains("<td class=\"left\" nowrap=\"nowrap\"")
-					|| line.contains("<td class=\"left\" title=\"record rank:")) {
-				player = line.split(">")[2].replace("</a", "");
-				count = 0;
-			}
-			count++;
-			if (count == 2 && line.contains("*"))
-				isPlaying.put(player, null);
-			if (count == index && player != null) {
-				String playerPoint = line.replace("<td nowrap=\"nowrap\">", "").replace("</td>", "").replace("<b>", "")
-						.replace("</b>", "");
-				if (!playerStats.containsKey(player)) {
-					playerStats.put(player, isInt(playerPoint) ? Integer.parseInt(playerPoint) * pointsPerIndex : 0);
-				} else {
-					playerStats.put(player, playerStats.get(player)
-							+ (isInt(playerPoint) ? Integer.parseInt(playerPoint) * pointsPerIndex : 0));
+			if (line.contains("AD Russell") || line.contains("KH Pandya")) {
+				String allPlayersList[] = line.split(AllConstants.PLAYERS_DELIMITER);
+				
+				for(int i=1;i<allPlayersList.length;i++) {
+					String playerInfo[] = allPlayersList[i].split("</span>");
+					player = playerInfo[0].split("\\(")[0].trim();
+					String playerPoint = playerInfo[index].replace("</td><td class=\"ds-min-w-max ds-text-right\"><span class=\"\">", "")
+							.replace("<strong>", "").replace("</strong>", "");
+					if (!playerStats.containsKey(player)) {
+						playerStats.put(player, isInt(playerPoint) ? Integer.parseInt(playerPoint) * pointsPerIndex : 0);
+					} else {
+						playerStats.put(player, playerStats.get(player)
+								+ (isInt(playerPoint) ? Integer.parseInt(playerPoint) * pointsPerIndex : 0));
+					}
+					if(playerInfo[3].trim().endsWith("*")) {
+						isPlaying.put(player, null);
+					}
+					
 				}
-
-				count++;
 			}
+			
 		}
 		return true;
 
